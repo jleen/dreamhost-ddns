@@ -1,0 +1,77 @@
+#!/usr/bin/env python
+
+import urllib, urllib2
+
+'''
+import os.path
+
+## Read the API key from a file
+APIKEY = open(os.path.expanduser('~/.ddns-api-key')).read().strip()
+## Read the hostname from a file (e.g. 'myserver.stabledomain.com')
+HOSTNAME = open(os.path.expanduser('~/.ddns-hostname')).read().strip()
+## Get my external IP from whatismyip.org
+MYIP = ext_ip = urllib.urlopen('http://whatismyip.org').read()
+'''
+
+## UPDATE: Actually, these all get passed as command line parameters.
+import sys
+def usage():
+    print >> sys.stderr, 'Usage:', sys.argv[0], '"Username (ignored)" "Dreamhost API Key" "Hostname" "IP Address"'
+    print 'badagent'
+    sys.exit(-1)
+
+if len( sys.argv ) != 5: usage()
+_, APIKEY, HOSTNAME, MYIP = sys.argv[1:]
+
+
+def call( cmd, **args ):
+    '''Call a DreamHost API method'''
+    args['key'] = APIKEY
+    args['cmd'] = cmd
+    url = 'https://api.dreamhost.com/?' + urllib.urlencode( args )
+    print >> sys.stderr, url
+    result = [ l.strip() for l in urllib2.urlopen( url ).readlines() ]
+    return result[0], result[1:]
+
+def replace_record( name, ip ):
+    '''Replace DH DNS records'''
+    
+    ### 1 Find existing 'A' records that match 'name'.
+    ### 2 Remove them if the IP is different from 'ip'.
+    ### 3 If there is an 'A' record which matches 'ip', we are done.
+    ### 4 Otherwise, add a new 'A' record.
+    
+    
+    ### 1
+    status, response = call( 'dns-list_records' )
+    if status == 'no_key': return 'badauth'
+    elif status != 'success': return 'badagent'
+    
+    matching_records = [
+        value
+        for
+        account_id, zone, record, type, value, comment, editable
+        in ( r.split('\t') for r in response[1:] )
+        if record == name and type == 'A'
+        ]
+    
+    
+    ### 2
+    ## NOTE: There can be multiple A records. We want to remove all that don't match IP.
+    ##       http://webmasters.stackexchange.com/questions/10927/using-multiple-a-records-for-my-domain-do-web-browsers-ever-try-more-than-one
+    for value in matching_records:
+        if value != ip:
+            call( 'dns-remove_record', record = name, type = 'A', value = value )
+    
+    
+    ### 3
+    if ip in matching_records: return 'nochg %s' % ip
+    
+    
+    ### 4
+    status, response = call( 'dns-add_record', record = name, type = 'A', value = ip, comment = 'DDNS' )
+    if status == 'success': return 'good %s' % ip
+    elif status == 'no_key': return 'badauth'
+    else: return 'badagent'
+
+print replace_record( HOSTNAME, MYIP )
