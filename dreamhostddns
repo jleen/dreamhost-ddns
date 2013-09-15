@@ -1,9 +1,20 @@
 #!/usr/bin/env python
 
+## Set kDebugLogFile to a path and debugging information will be written there.
+kDebugLogFile = None
+#kDebugLogFile = '/volume1/homes/yotam/dreamhostddns.out'
+#kDebugLogFile = "dreamhostddns.out"
+if kDebugLogFile is not None:
+    kDebugLogFile = open( kDebugLogFile, 'a' )
+
 import urllib
 try:
+    ## Synology's Python package (and MacPorts Python) has an ssl module
+    ## that hangs when handshaking with api.dreamhost.com.
+    ## The workaround is to use "tlslite".
     from tlslite import HTTPTLSConnection as HTTPSConnection
 except ImportError:
+    if kDebugLogFile is not None: print >> kDebugLogFile, "Could not load tlslite. Using HTTPSConnection."
     from httplib import HTTPSConnection
 
 '''
@@ -14,23 +25,34 @@ APIKEY = open(os.path.expanduser('~/.ddns-api-key')).read().strip()
 ## Read the hostname from a file (e.g. 'myserver.stabledomain.com')
 HOSTNAME = open(os.path.expanduser('~/.ddns-hostname')).read().strip()
 ## Get my external IP from whatismyip.org
-MYIP = ext_ip = urllib.urlopen('http://whatismyip.org').read()
+MYIP = urllib.urlopen('http://checkip.dyndns.org').read()
+MYIP = MYIP[ MYIP.index( 'Address: ' ) + len( 'Address: ' ) : ].split('<')[0]
 '''
 
 ## UPDATE: Actually, these all get passed as command line parameters.
 import sys
 def usage():
-    print >> sys.stderr, 'Usage:', sys.argv[0], '"Username (ignored)" "Dreamhost API Key" "Hostname" "IP Address"'
+    print >> sys.stderr, 'Usage:', sys.argv[0], '"Username Dreamhost-API-Key Hostname IP-Address"'
+    print >> sys.stderr, 'NOTE: All four arguments must be passed as a single string (that has three spaces separating the arguments).'
+    print >> sys.stderr, 'NOTE: Username must be present but will be ignored.'
     print 'badagent'
     sys.exit(-1)
 
-if len( sys.argv ) != 5: usage()
-_, APIKEY, HOSTNAME, MYIP = sys.argv[1:]
+if kDebugLogFile is not None: print >> kDebugLogFile, sys.argv
+
+if len( sys.argv ) != 2: usage()
+try:
+    _, APIKEY, HOSTNAME, MYIP = sys.argv[1].split()
+except ValueError:
+    usage()
 
 def call( cmd, **args ):
     '''Call a DreamHost API method'''
     args['key'] = APIKEY
     args['cmd'] = cmd
+    
+    if kDebugLogFile is not None: print >> kDebugLogFile, 'https://api.dreamhost.com/?' + urllib.urlencode( args )
+    
     ## Manually specify the port, because we might be using tlslite's HTTPTLSConnection.
     conn = HTTPSConnection( 'api.dreamhost.com', 443 )
     conn.request( 'GET', '/?' + urllib.urlencode( args ) )
@@ -83,4 +105,7 @@ def replace_record( name, ip ):
     elif status == 'no_key': return 'badauth'
     else: return 'badagent'
 
-print replace_record( HOSTNAME, MYIP )
+result = replace_record( HOSTNAME, MYIP )
+if kDebugLogFile is not None: print >> kDebugLogFile, result
+
+print result

@@ -1,38 +1,47 @@
-Synology Dynamic DNS for DreamHost Users
+# Synology Dynamic DNS for DreamHost Users #
 
-It's simple to use DreamHost as the Dynamic DNS for your Synology NAS.
+If your Synology NAS doesn't have a static IP address, it can be a pain to access.
+If you have a DreamHost-managed domain (e.g. `theskyisovercast.com`), you can solve this problem
+by making a subdomain for your Synology NAS (e.g. `cloudlet.theskyisovercast.com`).
+Follow these directions to install a Dynamic DNS (DDNS) provider for your Synology NAS
+that will show up in its Control Panel and manage (create or update)
+a subdomain of a DreamHost-managed domain whenever its IP address changes.
 
- * Install the Python 2.x package on your Synology NAS.
+ 1. Install the Python 2.x package on your Synology NAS.
  
- * UPDATE: Synology's Python _ssl (and MacPorts Python) has a problem connecting to "http://api.dreamhost.com".
-   The workaround is to install and use the package "tlslite":
-    1. Install pip. The easiest way to do this:
+ 2. Synology's Python `_ssl` (and MacPorts Python) has a problem connecting to "http://api.dreamhost.com".
+    The workaround is to install and use the package `tlslite`:
+    1. Install `pip`. Here is the easiest way to do this:
         
         `# curl -k https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python`
 
-    2. Install tlslite:
+    2. Install `tlslite`:
         
         `# pip install tlslite`
 
- * Save "dreamhostddns" to /usr/local/bin/
+ 3. Save `dreamhostddns` to `/usr/local/bin/`
 
- * Get an API key from: https://panel.dreamhost.com/index.cgi?tree=home.api for "All dns functions".
+ 4. Generate an API key from: https://panel.dreamhost.com/index.cgi?tree=home.api for "All dns functions".
 
- * Edit /etc/ddns_provider.conf and add the lines:
+ 5. Edit `/etc.defaults/ddns_provider.conf` (make a copy first to be safe) and add these lines at the bottom:
 
     ```
     [DreamHost]
             modulepath=/usr/local/bin/dreamhostddns
             queryurl=ignored
-            register_module=dreamhost
     ```
+    
+    NOTE: You must edit `/etc.defaults/ddns_provider.conf`, not `/etc/ddns_provider.conf` (which doesn't exist).
 
- * Open the DDNS panel and set your password to your API key and your desired hostname.
-   Your username is ignored.
+ 6. Open the DDNS Control Panel and set Hostname to your desired hostname (e.g. `cloudlet.mydomain.com`) and Password to the API key you generated.
+    Username/Email is ignored; set it to anything.
 
 NOTE: DreamHost DNS entries have a TTL (time-to-live) of 4 hours so they
 won't be quite as dynamic as a real DynDNS service.
 
-References:
-  http://wiki.dreamhost.com/API/Dns_commands
-  http://www.dyndns.com/developers/specs/
+##### References:
+ * http://wiki.dreamhost.com/API/Dns_commands
+ * http://www.dyndns.com/developers/specs/
+ * (On a Synology NAS) /etc.defaults/ddns_provider.conf
+ * http://blog.suhb.kr/entry/Synology%EC%97%90%EC%84%9C-DDNS%EB%A1%9C-DNSEver%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0
+ * http://jusa.hilvi.org/projects.2012-11-09.Synology_DDNS.html
