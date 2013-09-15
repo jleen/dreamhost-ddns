@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-import urllib, urllib2
+import urllib
+try:
+    from tlslite import HTTPTLSConnection as HTTPSConnection
+except ImportError:
+    from httplib import HTTPSConnection
 
 '''
 import os.path
@@ -23,14 +27,15 @@ def usage():
 if len( sys.argv ) != 5: usage()
 _, APIKEY, HOSTNAME, MYIP = sys.argv[1:]
 
-
 def call( cmd, **args ):
     '''Call a DreamHost API method'''
     args['key'] = APIKEY
     args['cmd'] = cmd
-    url = 'https://api.dreamhost.com/?' + urllib.urlencode( args )
-    print >> sys.stderr, url
-    result = [ l.strip() for l in urllib2.urlopen( url ).readlines() ]
+    ## Manually specify the port, because we might be using tlslite's HTTPTLSConnection.
+    conn = HTTPSConnection( 'api.dreamhost.com', 443 )
+    conn.request( 'GET', '/?' + urllib.urlencode( args ) )
+    response = conn.getresponse()
+    result = [ l.strip() for l in response.read().strip().split('\n') ]
     return result[0], result[1:]
 
 def replace_record( name, ip ):
@@ -43,15 +48,19 @@ def replace_record( name, ip ):
     
     
     ### 1
-    status, response = call( 'dns-list_records' )
+    status, all_records = call( 'dns-list_records' )
     if status == 'no_key': return 'badauth'
     elif status != 'success': return 'badagent'
+    
+    ## For debugging:
+    #print >> sys.stderr, all_records
+    #return '911'
     
     matching_records = [
         value
         for
         account_id, zone, record, type, value, comment, editable
-        in ( r.split('\t') for r in response[1:] )
+        in ( r.split('\t') for r in all_records[1:] )
         if record == name and type == 'A'
         ]
     
@@ -69,7 +78,7 @@ def replace_record( name, ip ):
     
     
     ### 4
-    status, response = call( 'dns-add_record', record = name, type = 'A', value = ip, comment = 'DDNS' )
+    status, _ = call( 'dns-add_record', record = name, type = 'A', value = ip, comment = 'DDNS' )
     if status == 'success': return 'good %s' % ip
     elif status == 'no_key': return 'badauth'
     else: return 'badagent'

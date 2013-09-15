@@ -3,17 +3,29 @@ Synology Dynamic DNS for DreamHost Users
 It's simple to use DreamHost as the Dynamic DNS for your Synology NAS.
 
  * Install the Python 2.x package on your Synology NAS.
+ 
+ * UPDATE: Synology's Python _ssl (and MacPorts Python) has a problem connecting to "http://api.dreamhost.com".
+   The workaround is to install and use the package "tlslite":
+    1. Install pip. The easiest way to do this:
+        
+        `# curl -k https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python`
+
+    2. Install tlslite:
+        
+        `# pip install tlslite`
 
  * Save "dreamhostddns" to /usr/local/bin/
 
- * Get an API key from: https://panel.dreamhost.com/index.cgi?tree=home.api
-   for "All dns functions".
+ * Get an API key from: https://panel.dreamhost.com/index.cgi?tree=home.api for "All dns functions".
 
  * Edit /etc/ddns_provider.conf and add the lines:
-[DreamHost]
-        modulepath=/usr/local/bin/dreamhostddns
-        queryurl=ignored
-        register_module=dreamhost
+
+    ```
+    [DreamHost]
+            modulepath=/usr/local/bin/dreamhostddns
+            queryurl=ignored
+            register_module=dreamhost
+    ```
 
  * Open the DDNS panel and set your password to your API key and your desired hostname.
    Your username is ignored.
