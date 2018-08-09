@@ -2,7 +2,7 @@
 
 ## Set kDebugLogFile to a path and debugging information will be written there.
 kDebugLogFile = None
-#kDebugLogFile = '/volume1/homes/yotam/dreamhostddns.out'
+kDebugLogFile = '/volume1/homes/jleen/dreamhostddns.out'
 #kDebugLogFile = "dreamhostddns.out"
 if kDebugLogFile is not None:
     kDebugLogFile = open( kDebugLogFile, 'a' )
@@ -40,9 +40,9 @@ def usage():
 
 if kDebugLogFile is not None: print >> kDebugLogFile, sys.argv
 
-if len( sys.argv ) != 2: usage()
+if len( sys.argv ) != 5: usage()
 try:
-    _, APIKEY, HOSTNAME, MYIP = sys.argv[1].split()
+    _, APIKEY, HOSTNAME, MYIP = sys.argv[1:]
 except ValueError:
     usage()
 
